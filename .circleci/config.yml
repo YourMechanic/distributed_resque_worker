@@ -1,0 +1,59 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/YourMechanic/distributed_resque_worker
+    parallelism: 1
+    shell: /bin/bash --login
+
+    environment:
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+    docker:
+      - image: circleci/ruby:2.3.8
+        environment:
+          RAILS_ENV: test
+      - image: circleci/postgres:9.5.15
+        environment:
+      - image: redis
+    steps:
+      - checkout
+      - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
+      - restore_cache:
+          keys:
+          # This branch if available
+          - v2-dep-{{ .Branch }}-
+          # Default branch if not
+          - v2-dep-master-
+          # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
+          - v2-dep-
+      - run:
+          name: Install bundler for distributed_resque_worker
+          working_directory: ~/YourMechanic/distributed_resque_worker
+          command: gem install bundler:1.17.3
+      - run:
+          name: Install Gems for distributed_resque_worker
+          working_directory: ~/YourMechanic/distributed_resque_worker
+          command: bundle install
+      # Save dependency cache
+      - save_cache:
+          key: v2-dep-{{ .Branch }}-{{ epoch }}
+          paths:
+          - vendor/bundle
+          - ~/virtualenvs
+          - ~/.m2
+          - ~/.ivy2
+          - ~/.bundle
+      - run:
+          working_directory: ~/YourMechanic/distributed_resque_worker
+          command: bundle exec rubocop
+      - run:
+          working_directory: ~/YourMechanic/distributed_resque_worker
+          command: bundle exec rspec --colour --drb --profile -fd --format progress $(circleci tests glob "spec/*_spec.rb" | circleci tests split)
+      - store_test_results:
+          path: /tmp/circleci-test-results
+      - store_artifacts:
+          path: /tmp/circleci-artifacts
+      - store_artifacts:
+          path: /tmp/circleci-test-results
+      - store_artifacts:
+          path: distributed_resque_worker/coverage
