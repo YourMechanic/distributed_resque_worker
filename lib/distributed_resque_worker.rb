@@ -13,9 +13,20 @@ module DistributedResqueWorker
   # rubocop:disable Metrics/AbcSize
   # rubocop:disable Layout/LineLength
 
+
+  module ResqueFailure
+    def on_failure_logging(error, *args)
+      Resque.logger.info "Performing #{self} caused an exception (#{error}) with args #{args}. Logging into bugssnag"
+      Bugsnag.notify($!) do |notification|
+        notification.meta_data = { job_args: args }
+      end
+    end
+  end
+
   # ResqueWorker
   class ResqueWorker
     CHUNK_SIZE = 100
+    extend ResqueFailure
 
     def initialize(queue_name, bucket, root)
       @queue = "#{queue_name}_#{Time.now.to_i}_#{Random.rand(1000000)}".to_sym
