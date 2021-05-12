@@ -9,13 +9,18 @@ require_relative 'distributed_resque_worker/resque_tester'
 
 # DistributedResqueWorker
 module DistributedResqueWorker
-  # rubocop:disable Metrics/ClassLength
-  # rubocop:disable Metrics/AbcSize
-  # rubocop:disable Layout/LineLength
+  # ResqueFailure
+  module ResqueFailure
+    def on_failure_logging(error, *args)
+      msg = "Performing #{self} caused an exception #{error} with args #{args}."
+      Resque.logger.info msg
+    end
+  end
 
   # ResqueWorker
   class ResqueWorker
     CHUNK_SIZE = 100
+    extend ResqueFailure
 
     def initialize(queue_name, bucket, root)
       @queue = "#{queue_name}_#{Time.now.to_i}_#{Random.rand(1000000)}".to_sym
@@ -28,17 +33,21 @@ module DistributedResqueWorker
       total_jobs = (work_list.length.to_f / CHUNK_SIZE).ceil
       total_jobs = 1 if total_jobs.zero?
       Resque.logger.info("total_jobs #{total_jobs}")
-      ResqueWorker.resque_redis.redis.set(ResqueWorker.resque_worker_redis_key(@queue), total_jobs)
+      ResqueWorker.resque_redis.redis.set(
+        ResqueWorker.resque_worker_redis_key(@queue), total_jobs
+      )
       work_list.each_slice(CHUNK_SIZE).each_with_index do |chunk, index|
-        details = { work_name: @queue, chunk: chunk, index: index, type: 'processor',
-                    root: @root.to_s, bucket: @bucket, method: method, opts: opts }
+        details = { work_name: @queue, chunk: chunk, index: index,
+                    type: 'processor', root: @root.to_s,
+                    bucket: @bucket, method: method, opts: opts }
         Resque.enqueue_to(@queue, ResqueWorker, details)
       end
     end
 
     def self.perform(args)
       redis_key = resque_worker_redis_key(args['work_name'])
-      Resque.logger.info("No of jobs remaining => #{resque_redis.redis.get(redis_key)}")
+      no_jobs = resque_redis.redis.get(redis_key)
+      Resque.logger.info("No of jobs remaining => #{no_jobs}")
       if args['type'] == 'processor'
         process_chunk(args)
         if resque_redis.redis.get(redis_key).to_i.zero?
@@ -58,8 +67,10 @@ module DistributedResqueWorker
         "DistributedResqueWorker:#{work_name}"
       end
 
-      def merge_intermediate_files(work_name, final_tmp_file)
-        system(`awk '(NR == 1) || (FNR > 1)' tmp/#{work_name}/#{work_name}_*.csv > #{final_tmp_file}`)
+      def merge_intermediate_files(work_name, final_file)
+        files = "tmp/#{work_name}/#{work_name}_*.csv"
+        cmd = "awk '(NR == 1) || (FNR > 1)' #{files} > #{final_file}"
+        system(`#{cmd}`)
       end
 
       def enqueue_post_processor(args)
@@ -97,12 +108,14 @@ module DistributedResqueWorker
 
       def post_processing(args)
         input = args.symbolize_keys!
-        final_tmp_file = "#{input[:root]}/tmp/#{input[:work_name]}/#{input[:work_name]}_final.csv"
+        work_name = input[:work_name]
+        root = input[:root]
+        final_tmp_file = "#{root}/tmp/#{work_name}/#{work_name}_final.csv"
         Resque.logger.info("start post_processing #{input}")
         begin
-          download_intermediate_files(input[:work_name], input[:bucket], input[:root])
-          delete_intermediate_s3_files(input[:work_name], input[:bucket])
-          merge_intermediate_files(input[:work_name], final_tmp_file)
+          download_intermediate_files(work_name, input[:bucket], root)
+          delete_intermediate_s3_files(work_name, input[:bucket])
+          merge_intermediate_files(work_name, final_tmp_file)
           upload_final_file_to_s3_and_send(input, final_tmp_file)
         rescue StandardError
           Resque.logger.error($ERROR_INFO)
@@ -113,7 +126,8 @@ module DistributedResqueWorker
 
       def download_intermediate_files(work_name, bucket, root)
         aws_bucket = AwsHelper.bucket(bucket)
-        s3_object = aws_bucket.objects.with_prefix("resque_worker/#{work_name}/")
+        folder = "resque_worker/#{work_name}/"
+        s3_object = aws_bucket.objects.with_prefix(folder)
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |filename|
           local_file_name = filename.split('/')
@@ -127,7 +141,8 @@ module DistributedResqueWorker
 
       def delete_intermediate_s3_files(work_name, bucket)
         aws_bucket = AwsHelper.bucket(bucket)
-        s3_object = aws_bucket.objects.with_prefix("resque_worker/#{work_name}/")
+        folder = "resque_worker/#{work_name}/"
+        s3_object = aws_bucket.objects.with_prefix(folder)
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |item|
           AwsHelper.s3_delete(item, bucket)
@@ -135,13 +150,15 @@ module DistributedResqueWorker
       end
 
       def upload_final_file_to_s3_and_send(input, final_tmp_file)
-        s3_name = "resque_worker/#{input[:work_name]}/#{input[:work_name]}_final.csv"
-        final_file_link = AwsHelper.s3_store_file(s3_name, final_tmp_file, input[:bucket])
+        work_name = input[:work_name]
+        s3_name = "resque_worker/#{work_name}/#{work_name}_final.csv"
+        final_file_link = AwsHelper.s3_store_file(s3_name, final_tmp_file,
+                                                  input[:bucket])
         method_post = "#{input[:method]}_post".to_sym
         worker_class = input[:work_name].split('_').first
         worker = worker_class.constantize
         worker.send(method_post, final_file_link, input[:opts])
-        clean_up(input[:work_name], input[:root])
+        clean_up(work_name, input[:root])
       end
 
       def clean_up(queue_name, root)
@@ -158,8 +175,4 @@ module DistributedResqueWorker
       end
     end
   end
-
-  # rubocop:enable Metrics/ClassLength
-  # rubocop:enable Metrics/AbcSize
-  # rubocop:enable Layout/LineLength
 end

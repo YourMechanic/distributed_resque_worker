@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    distributed_resque_worker (0.1.0)
+    distributed_resque_worker (1.0.0)
       aws-sdk (= 1.11.1)
       resque (~> 2.0)
 
@@ -35,7 +35,7 @@ GEM
       rack
     rainbow (3.0.0)
     rake (10.5.0)
-    redis (4.2.5)
+    redis (4.4.0)
     redis-namespace (1.6.0)
       redis (>= 3.0.4)
     resque (2.0.0)
@@ -67,7 +67,7 @@ GEM
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 2.0)
     ruby-progressbar (1.11.0)
-    ruby2_keywords (0.0.4)
+    ruby2_keywords (0.0.5)
     safe_yaml (1.0.4)
     sinatra (2.1.0)
       mustermann (~> 1.0)
@@ -93,7 +93,7 @@ DEPENDENCIES
   rake (~> 10.0)
   rspec (~> 3.0)
   rubocop (~> 0.48)
-  webmock
+  webmock (~> 3.4.2)
 
 BUNDLED WITH
    1.17.3

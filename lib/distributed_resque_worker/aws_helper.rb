@@ -33,7 +33,7 @@ module AwsHelper
     rescue AWS::S3::Errors::RequestTimeout
       ntry += 1
       if ntry > maxtry
-        Bugsnag.notify($ERROR_INFO, extra: { http_body: $ERROR_INFO.http_body })
+        Resque.logger.info($ERROR_INFO)
         raise
       end
       print "Error: #{$ERROR_INFO}, retrying\n"
