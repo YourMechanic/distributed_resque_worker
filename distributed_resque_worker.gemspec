@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.name          = 'distributed_resque_worker'
   spec.version       = DistributedResqueWorker::VERSION
   spec.authors       = ['TruptiHosmani']
-  spec.email         = ['trupti@yourmechanic.com']
+  spec.email         = ['dev@yourmechanic.com']
 
   spec.summary       = 'Gem for downloadable reports using Resque'
   spec.description   = 'Downloadable reports which uses background workers'\
@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/YourMechanic/distributed_resque_worker'
   spec.license       = 'MIT'
   spec.required_ruby_version = Gem::Requirement.new('>= 2.3')
-  spec.metadata['allowed_push_host'] = 'https://github.com/YourMechanic/distributed_resque_worker'
+  spec.metadata['allowed_push_host'] = 'https://rubygems.org'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/YourMechanic/distributed_resque_worker'
