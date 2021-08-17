@@ -11,8 +11,8 @@ Gem::Specification.new do |spec|
   spec.email         = ['dev@yourmechanic.com']
 
   spec.summary       = 'Gem for downloadable reports using Resque'
-  spec.description   = 'Downloadable reports which uses background workers'\
-                       'and then emails an S3 link for CSV to the requestor'
+  spec.description   = 'Distributed Background Worker to process a large '\
+                       'workload'
   spec.homepage      = 'https://github.com/YourMechanic/distributed_resque_worker'
   spec.license       = 'MIT'
   spec.required_ruby_version = Gem::Requirement.new('>= 2.3')
@@ -33,10 +33,10 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_development_dependency 'bundler', '~> 1.17.3'
-  spec.add_development_dependency 'rake', '~> 10.0'
-  spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'rake', '~> 13.0.3'
+  spec.add_development_dependency 'rspec', '~> 3.9.0'
   spec.add_development_dependency 'rubocop', '~> 0.48'
-  spec.add_development_dependency 'webmock', '~> 3.4.2'
-  spec.add_dependency 'aws-sdk', '1.11.1'
+  spec.add_development_dependency 'webmock', '~> 3.12.2'
+  spec.add_dependency 'aws-sdk', '3.0.2'
   spec.add_dependency 'resque', '~> 2.0'
 end
