@@ -127,7 +127,7 @@ module DistributedResqueWorker
       def download_intermediate_files(work_name, bucket, root)
         aws_bucket = AwsHelper.bucket(bucket)
         folder = "resque_worker/#{work_name}/"
-        s3_object = aws_bucket.objects.with_prefix(folder)
+        s3_object = aws_bucket.objects({prefix: folder})
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |filename|
           local_file_name = filename.split('/')
