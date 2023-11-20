@@ -7,21 +7,25 @@ module AwsHelper
   module_function
 
   def bucket(bucket)
-    @bucket = AWS::S3.new.buckets[bucket]
+    @bucket = Aws::S3::Resource.new(region: "us-east-1").bucket(bucket)
   end
 
-  def s3_store_file(name, file, bucket_name, opt = {})
+  def s3_store_file(name, file, opt={})
+    unless opt.include?(:content_type)
+      opt[:content_type] = content_type(File.extname(file))
+    end
+
     # Stream the content for storage
     File.open(file, 'rb') do |f|
-      return s3_store(name, f, bucket_name, opt)
+      return s3_store(name, f, opt)
     end
   end
 
-  def s3_store(name, content, bucket_name, opt = {})
+  def s3_store(name, content, opt={})
     run_with_retry do
-      obj = s3_get_object(name, bucket_name)
-      obj.write(content, opt)
-      obj.exists? ? s3_get_object_url(name, bucket_name) : nil
+      obj = s3_get_object(name, opt)
+      obj.upload_file(content)
+      obj.exists? ? s3_get_object_url(name, opt) : nil
     end
   end
 
@@ -29,14 +33,14 @@ module AwsHelper
     maxtry = 3
     ntry = 0
     begin
-      yield
-    rescue AWS::S3::Errors::RequestTimeout
+      return yield
+    rescue Aws::S3::Errors::RequestTimeout
       ntry += 1
       if ntry > maxtry
-        Resque.logger.info($ERROR_INFO)
+        Bugsnag.notify($!, extra: {http_body: $!.http_body})
         raise
       end
-      print "Error: #{$ERROR_INFO}, retrying\n"
+      print "Error: #{$!}, retrying\n"
       @bucket = nil # So that we create a new bucket
       retry
     end
@@ -44,7 +48,7 @@ module AwsHelper
 
   def doomsday
     expiration = Time.zone.now + 20.years
-    # TODO: ::Update after AWS changes this limit. Will likely be a while
+    # TODO:::Update after AWS changes this limit. Will likely be a while
     # since it depends on global transition to 64-bit systems
     #
     # AWS sets 01/20/2038 as an upper limit threshold on expiration date
@@ -54,26 +58,26 @@ module AwsHelper
     expiration
   end
 
-  def s3_get_object_url(name, bucket_name, _opt = {})
-    obj = s3_get_object(name, bucket_name)
-    return nil unless obj&.exists?
-
-    secure = true
-    obj.url_for(:read, secure: secure, expires: doomsday).to_s
+  def s3_get_object_url(name, opt = {})
+    obj = s3_get_object(name, opt)
+    return nil unless obj && obj.exists?
+    secure = opt.include?(:secure) ? opt[:secure] : true
+    # Replace expire time to one week (604,800 seconds) as the maximum amount of time the
+    # presigned URL is one week
+    obj.presigned_url(:get, secure: secure, expires_in: 604800)
   end
 
-  def s3_delete(name, bucket_name)
-    run_with_retry { s3_get_object(name, bucket_name).delete }
+  def s3_delete(name)
+    run_with_retry { s3_get_object(name).delete }
   end
 
-  def s3_get_object(name, bucket_name)
-    bucket = bucket(bucket_name)
-    bucket.objects[name]
+  def s3_get_object(name, opt = {})
+    bucket().object(name)
   end
 
-  def s3_download_file(name, filename, bucket_name)
+  def s3_download_file(name, filename, opt = {})
     run_with_retry do
-      data = s3_get_object(name, bucket_name).read
+      data = s3_get_object(name, opt).read
       File.open(filename, 'wb') do |file|
         file.write(data)
       end
