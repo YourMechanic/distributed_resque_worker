@@ -142,7 +142,7 @@ module DistributedResqueWorker
       def delete_intermediate_s3_files(work_name, bucket)
         aws_bucket = AwsHelper.bucket(bucket)
         folder = "resque_worker/#{work_name}/"
-        s3_object = aws_bucket.objects.with_prefix(folder)
+        s3_object = aws_bucket.objects({prefix: folder})
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |item|
           AwsHelper.s3_delete(item, bucket)
