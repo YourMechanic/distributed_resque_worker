@@ -62,7 +62,7 @@ module AwsHelper
     obj.presigned_url(:get, secure: secure, expires_in: 604800)
   end
 
-  def s3_delete(name)
+  def s3_delete(name, opts = {})
     run_with_retry { s3_get_object(name).delete }
   end
 

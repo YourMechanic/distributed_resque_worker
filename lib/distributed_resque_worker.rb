@@ -135,7 +135,7 @@ module DistributedResqueWorker
 
           download_file_path = "#{root}/tmp/#{work_name}/#{local_file_name[2]}"
           Resque.logger.info("download_file_path #{download_file_path} ")
-          AwsHelper.s3_download_file(filename, download_file_path, bucket)
+          AwsHelper.s3_download_file(filename, download_file_path, {bucket: bucket})
         end
       end
 
@@ -145,7 +145,7 @@ module DistributedResqueWorker
         s3_object = aws_bucket.objects({prefix: folder})
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |item|
-          AwsHelper.s3_delete(item, bucket)
+          AwsHelper.s3_delete(item, {bucket:bucket})
         end
       end
 
