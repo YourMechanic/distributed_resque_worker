@@ -67,8 +67,8 @@ module AwsHelper
   end
 
   def s3_get_object(name, opt = {})
-    Resque.logger.info("opts =============> #{opt}")
-    bucket(opt["bucket"]).object(name)
+    Resque.logger.info("opts =============> #{opt.inspect}")
+    bucket(opt[:bucket]).object(name)
   end
 
   def s3_download_file(name, filename, opt = {})
