@@ -63,7 +63,7 @@ module AwsHelper
   end
 
   def s3_delete(name, opts = {})
-    run_with_retry { s3_get_object(name).delete }
+    run_with_retry { s3_get_object(name, opts).delete }
   end
 
   def s3_get_object(name, opt = {})
