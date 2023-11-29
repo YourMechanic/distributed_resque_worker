@@ -74,7 +74,7 @@ module AwsHelper
   def s3_download_file(name, filename, opt = {})
     run_with_retry do
       s3_object_handle = s3_get_object(name, opt)
-      s3_obj.get(response_target: filename) if s3_object_handle.exists?
+      s3_object_handle.get(response_target: filename) if s3_object_handle.exists?
     end
   end
 
