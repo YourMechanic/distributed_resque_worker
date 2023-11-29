@@ -73,11 +73,8 @@ module AwsHelper
 
   def s3_download_file(name, filename, opt = {})
     run_with_retry do
-      data = s3_get_object(name, opt).read
-      File.open(filename, 'wb') do |file|
-        file.write(data)
-      end
-      nil
+      s3_object_handle = s3_get_object(name, opt)
+      s3_obj.get(response_target: filename) if s3_object_handle.exists?
     end
   end
 
