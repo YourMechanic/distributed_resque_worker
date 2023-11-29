@@ -11,11 +11,6 @@ module AwsHelper
   end
 
   def s3_store_file(name, file, opt={})
-    unless opt.include?(:content_type)
-      opt[:content_type] = content_type(File.extname(file))
-    end
-
-    # Stream the content for storage
     File.open(file, 'rb') do |f|
       return s3_store(name, f, opt)
     end
