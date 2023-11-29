@@ -67,7 +67,7 @@ module AwsHelper
   end
 
   def s3_get_object(name, opt = {})
-    bucket().object(name)
+    bucket(opt[:bucket]).object(name)
   end
 
   def s3_download_file(name, filename, opt = {})
