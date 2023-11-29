@@ -98,7 +98,7 @@ module DistributedResqueWorker
       def store_to_s3_delete_local_copy(path, filename, bucket)
         s3_name = "resque_worker/#{path}"
         begin
-          AwsHelper.s3_store_file(s3_name, filename, bucket)
+          AwsHelper.s3_store_file(s3_name, filename, {bucket: bucket})
           File.delete(filename)
         rescue StandardError
           Resque.logger.error($ERROR_INFO)
@@ -153,7 +153,7 @@ module DistributedResqueWorker
         work_name = input[:work_name]
         s3_name = "resque_worker/#{work_name}/#{work_name}_final.csv"
         final_file_link = AwsHelper.s3_store_file(s3_name, final_tmp_file,
-                                                  input[:bucket])
+                                                  {bucket: input[:bucket]})
         method_post = "#{input[:method]}_post".to_sym
         worker_class = input[:work_name].split('_').first
         worker = worker_class.constantize
