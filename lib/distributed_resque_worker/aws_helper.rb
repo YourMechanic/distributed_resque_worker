@@ -67,7 +67,7 @@ module AwsHelper
   end
 
   def s3_get_object(name, opt = {})
-    Resque.logger.info opt
+    Resque.logger.info("opts =============> #{opt}")
     bucket(opt["bucket"]).object(name)
   end
 
