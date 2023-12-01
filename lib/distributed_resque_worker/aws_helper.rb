@@ -7,16 +7,16 @@ module AwsHelper
   module_function
 
   def bucket(bucket)
-    @bucket = Aws::S3::Resource.new(region: "us-east-1").bucket(bucket)
+    @bucket = Aws::S3::Resource.new(region: 'us-east-1').bucket(bucket)
   end
 
-  def s3_store_file(name, file, opt={})
+  def s3_store_file(name, file, opt = {})
     File.open(file, 'rb') do |f|
       return s3_store(name, f, opt)
     end
   end
 
-  def s3_store(name, content, opt={})
+  def s3_store(name, content, opt = {})
     run_with_retry do
       obj = s3_get_object(name, opt)
       obj.upload_file(content)
@@ -28,14 +28,14 @@ module AwsHelper
     maxtry = 3
     ntry = 0
     begin
-      return yield
+      yield
     rescue Aws::S3::Errors::RequestTimeout
       ntry += 1
       if ntry > maxtry
-        Bugsnag.notify($!, extra: {http_body: $!.http_body})
+        Bugsnag.notify($ERROR_INFO, extra: { http_body: $ERROR_INFO.http_body })
         raise
       end
-      print "Error: #{$!}, retrying\n"
+      print "Error: #{$ERROR_INFO}, retrying\n"
       @bucket = nil # So that we create a new bucket
       retry
     end
@@ -43,7 +43,7 @@ module AwsHelper
 
   def doomsday
     expiration = Time.zone.now + 20.years
-    # TODO:::Update after AWS changes this limit. Will likely be a while
+    # TODO: ::Update after AWS changes this limit. Will likely be a while
     # since it depends on global transition to 64-bit systems
     #
     # AWS sets 01/20/2038 as an upper limit threshold on expiration date
@@ -55,9 +55,11 @@ module AwsHelper
 
   def s3_get_object_url(name, opt = {})
     obj = s3_get_object(name, opt)
-    return nil unless obj && obj.exists?
+    return nil unless obj&.exists?
+
     secure = opt.include?(:secure) ? opt[:secure] : true
-    # Replace expire time to one week (604,800 seconds) as the maximum amount of time the
+    # Replace expire time to one week (604,800 seconds)
+    # as the maximum amount of time the
     # presigned URL is one week
     obj.presigned_url(:get, secure: secure, expires_in: 604800)
   end
@@ -74,7 +76,9 @@ module AwsHelper
   def s3_download_file(name, filename, opt = {})
     run_with_retry do
       s3_object_handle = s3_get_object(name, opt)
-      s3_object_handle.get(response_target: filename) if s3_object_handle.exists?
+      if s3_object_handle.exists?
+        s3_object_handle.get(response_target: filename)
+      end
     end
   end
 
