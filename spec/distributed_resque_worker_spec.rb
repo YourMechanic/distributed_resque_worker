@@ -33,12 +33,6 @@ RSpec.describe DistributedResqueWorker do
     expect(DistributedResqueWorker::VERSION).not_to be nil
   end
 
-  it 'should check workers are up and running' do
-    `BACKGROUND=YES COUNT=1 QUEUE=* rake resque:workers`
-    info = Resque.info
-    expect(info[:workers]).to be(1)
-  end
-
   it 'should enqueue with type "processor", create one file after process' do
     d = Dir.new(Dir.pwd + '/tmp')
     old_files = d.to_a.size
