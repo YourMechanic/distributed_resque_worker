@@ -7,6 +7,8 @@ require 'resque'
 require_relative 'distributed_resque_worker/aws_helper'
 require_relative 'distributed_resque_worker/resque_tester'
 
+# rubocop:disable Layout/LineLength
+
 # DistributedResqueWorker
 module DistributedResqueWorker
   # ResqueFailure
@@ -98,7 +100,7 @@ module DistributedResqueWorker
       def store_to_s3_delete_local_copy(path, filename, bucket)
         s3_name = "resque_worker/#{path}"
         begin
-          AwsHelper.s3_store_file(s3_name, filename, bucket)
+          AwsHelper.s3_store_file(s3_name, filename, { bucket: bucket })
           File.delete(filename)
         rescue StandardError
           Resque.logger.error($ERROR_INFO)
@@ -127,7 +129,7 @@ module DistributedResqueWorker
       def download_intermediate_files(work_name, bucket, root)
         aws_bucket = AwsHelper.bucket(bucket)
         folder = "resque_worker/#{work_name}/"
-        s3_object = aws_bucket.objects.with_prefix(folder)
+        s3_object = aws_bucket.objects({ prefix: folder })
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |filename|
           local_file_name = filename.split('/')
@@ -135,17 +137,17 @@ module DistributedResqueWorker
 
           download_file_path = "#{root}/tmp/#{work_name}/#{local_file_name[2]}"
           Resque.logger.info("download_file_path #{download_file_path} ")
-          AwsHelper.s3_download_file(filename, download_file_path, bucket)
+          AwsHelper.s3_download_file(filename, download_file_path, { bucket: bucket })
         end
       end
 
       def delete_intermediate_s3_files(work_name, bucket)
         aws_bucket = AwsHelper.bucket(bucket)
         folder = "resque_worker/#{work_name}/"
-        s3_object = aws_bucket.objects.with_prefix(folder)
+        s3_object = aws_bucket.objects({ prefix: folder })
         s3_file_names = s3_object.collect(&:key)
         s3_file_names.each do |item|
-          AwsHelper.s3_delete(item, bucket)
+          AwsHelper.s3_delete(item, { bucket: bucket })
         end
       end
 
@@ -153,7 +155,7 @@ module DistributedResqueWorker
         work_name = input[:work_name]
         s3_name = "resque_worker/#{work_name}/#{work_name}_final.csv"
         final_file_link = AwsHelper.s3_store_file(s3_name, final_tmp_file,
-                                                  input[:bucket])
+                                                  { bucket: input[:bucket] })
         method_post = "#{input[:method]}_post".to_sym
         worker_class = input[:work_name].split('_').first
         worker = worker_class.constantize
@@ -176,3 +178,4 @@ module DistributedResqueWorker
     end
   end
 end
+# rubocop:enable Layout/LineLength
